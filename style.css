@@ -1,0 +1,35 @@
+* { margin: 0; padding: 0; }
+
+body {
+  font: 16px Georgia, serif;
+  background: #eee;
+}
+
+#wrapper {
+  background: #fff;
+  width: 500px;
+  padding: 20px;
+  margin: 20px auto;
+}
+
+h1 {
+  font-size: 48px; font-weight: normal;
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+#field table {
+  margin: 0 auto;
+  border-collapse: collapse;
+}
+
+#field table td {
+  border: 1px solid #888;
+  width: 24px; height: 24px;
+  font-size: 18px;
+  line-height: 24px; text-align: center;
+}
+
+td .flag {
+  font-weight: bold; color: #ffff00;
+}
