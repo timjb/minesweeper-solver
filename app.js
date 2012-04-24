@@ -1,6 +1,6 @@
 function main () {
-  var field = new Field(16, 16, 40);
-  var solver = new Solver(field);
+  var field = new MineSweeper.Field(16, 16, 40);
+  var solver = new MineSweeper.Solver(field);
   solver.onGuess = function () {
     console.log("Guess");
   };
