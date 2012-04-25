@@ -11,6 +11,10 @@ var MineSweeper = (function () {
     return Math.floor(Math.random() * n);
   }
 
+  function randomElement (arr) {
+    return arr[randomInt(arr.length)];
+  }
+
   function range (s, e) {
     var arr = [];
     while (s <= e) { arr.push(s++); }
@@ -64,19 +68,23 @@ var MineSweeper = (function () {
     return this.covered[this.getIndex(x, y)];
   };
 
+  Field.prototype.blowUp = function (x, y) {
+    throw new Error("KAAAWUMMMMM!");
+  };
+
   Field.prototype.uncover = function (x, y) {
     var self = this;
 
     function isMine(x, y) { return self.mines[self.getIndex(x, y)]; }
 
+    if (isMine(x, y)) {
+      return this.blowUp(x, y);
+    }
+
     var i = this.getIndex(x, y);
     if (this.covered[i]) {
       this.covered[i] = false;
       this.left--;
-    }
-
-    if (isMine(x, y)) {
-      throw new Error("KAAAWUMMMMM!");
     }
 
     var count = 0;
@@ -100,8 +108,6 @@ var MineSweeper = (function () {
     }
     this.createConstraint(field.minesCount, range(0, n-1));
   }
-
-  Solver.prototype.onGuess = function () {};
 
   function Constraint (mines, cells) {
     this.mines = mines;
@@ -225,14 +231,33 @@ var MineSweeper = (function () {
     this.createConstraint(mines, neighbors, mines === 0);
   };
 
-  Solver.prototype.randomCell = function () {
-    this.onGuess();
-    var x, y;
-    do {
-      x = randomInt(this.width);
-      y = randomInt(this.height);
-    } while (!this.field.isCovered(x, y));
-    return [x, y];
+  Solver.prototype.getProbability = function (x, y) {
+    var constraints = this.cells[this.field.getIndex(x, y)];
+    var p = 0;
+    for (var i = 0, l = constraints.length; i < l; i++) {
+      var constraint = constraints[i];
+      p = Math.max(p, constraint.mines / constraint.cells.length);
+    }
+    return p;
+  };
+
+  Solver.prototype.guess = function () {
+    var best = [], bestP = 1;
+    for (var x = 0; x < this.width; x++) {
+      for (var y = 0; y < this.height; y++) {
+        if (this.field.isCovered(x, y)) {
+          var p = this.getProbability(x, y);
+          if (p === bestP) {
+            best.push([x, y]);
+          } else if (p < bestP) {
+            bestP = p;
+            best = [[x, y]];
+          }
+        }
+      }
+    }
+    var pos = randomElement(best);
+    this.uncover(pos[0], pos[1]);
   };
 
   Solver.prototype.fromIndex = function (i) {
@@ -240,9 +265,12 @@ var MineSweeper = (function () {
   };
 
   Solver.prototype.step = function () {
-    var pos = this.frontier.length > 0 ? this.fromIndex(this.frontier.shift())
-                                       : this.randomCell();
-    this.uncover(pos[0], pos[1]);
+    if (this.frontier.length > 0) {
+      var pos = this.fromIndex(this.frontier.shift());
+      this.uncover(pos[0], pos[1]);
+    } else {
+      this.guess();
+    }
   };
 
   Solver.prototype.solve = function () {
@@ -265,11 +293,16 @@ var MineSweeper = (function () {
     for (var y  = 0; y < this.height; y++) {
       html += '<tr>';
       for (var x = 0; x < this.width; x++) {
-        html += '<td>';
+        if (this.frontier.indexOf(this.field.getIndex(x, y)) !== -1) {
+          html += '<td class="frontier">';
+        } else {
+          html += '<td>';
+        }
         if (!this.field.isCovered(x, y)) {
-          html += this.field.uncover(x, y);
+          var mines = this.field.uncover(x, y);
+          html += '<span class="mines-' + mines + '">' + mines + '</span>';
         } else if (isFlagged(x, y)) {
-          html += '<span class="flag">M</span>';
+          html += '<span class="flag">F</span>';
         }
         html += '</td>';
       }

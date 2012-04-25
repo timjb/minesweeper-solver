@@ -2,23 +2,23 @@
 
 body {
   font: 16px Georgia, serif;
-  background: #eee;
 }
 
 #wrapper {
-  background: #fff;
-  width: 500px;
-  padding: 20px;
-  margin: 20px auto;
+  margin: 40px auto;
 }
 
 h1 {
-  font-size: 48px; font-weight: normal;
+  font-size: 48px; line-height: 64px; font-weight: normal;
+}
+
+h1, #field, #status, #toolbar {
   margin: 0 0 20px;
   text-align: center;
 }
 
 #field table {
+  font-family: monospace; font-weight: bold;
   margin: 0 auto;
   border-collapse: collapse;
 }
@@ -30,6 +30,35 @@ h1 {
   line-height: 24px; text-align: center;
 }
 
+td.mine {
+  background: #000;
+}
+td.frontier {
+  background: #fee;
+}
+
 td .flag {
   font-weight: bold; color: #ffff00;
+}
+.mines-0 { color: #999; }
+.mines-1 { color: #55a; }
+.mines-2 { color: #5a5; }
+.mines-3 { color: #a55;}
+.mines-4 { color: #338; }
+.mines-5 { color: #383;}
+.mines-6, .mines-7, .mines-8 { color: #833; }
+
+#toolbar {
+  margin: 0 0 20px;
+  font-size: 15px;;
+}
+
+#toolbar input {
+  margin-right: 8px;
+  padding: 4px 6px;
+}
+
+#status {
+  font: 14px Helvetica, Arial, sans-serif;
+  color: #888;
 }
