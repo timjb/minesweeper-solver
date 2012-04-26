@@ -10,8 +10,8 @@ function main () {
   var statusEl = byId('status');
 
   function reset () {
-    field = new MineSweeper.Field(WIDTH, HEIGHT, MINES);
-    solver = new MineSweeper.Solver(field);
+    field = window.field = new MineSweeper.Field(WIDTH, HEIGHT, MINES);
+    solver = window.solver = new MineSweeper.Solver(field);
     lost = null;
     solver.guess = function () {
       statusEl.innerHTML += "Guessing &hellip; ";

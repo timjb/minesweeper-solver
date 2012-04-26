@@ -75,7 +75,7 @@ var MineSweeper = (function () {
   Field.prototype.uncover = function (x, y) {
     var self = this;
 
-    function isMine(x, y) { return self.mines[self.getIndex(x, y)]; }
+    function isMine (x, y) { return self.mines[self.getIndex(x, y)]; }
 
     if (isMine(x, y)) {
       return this.blowUp(x, y);
@@ -109,9 +109,12 @@ var MineSweeper = (function () {
     this.createConstraint(field.minesCount, range(0, n-1));
   }
 
+  var count = 0;
   function Constraint (mines, cells) {
     this.mines = mines;
     this.cells = cells;
+    this.unifiedWith = [];
+    this.count = count++;
   }
 
   Solver.prototype.createConstraint = function (mines, cells, uncoverImmediately) {
@@ -146,8 +149,9 @@ var MineSweeper = (function () {
     for (var i = 0, l = constraint.cells.length; i < l; i++) {
       var cell = this.cells[constraint.cells[i]];
       for (var j = 0, k = cell.length; j < k; j++) {
-        if (cell[j] === constraint) { continue; }
-        if (arr.indexOf(cell[j]) === -1) { arr.push(cell[j]); }
+        if (cell[j] !== constraint && arr.indexOf(cell[j]) === -1) {
+          arr.push(cell[j]);
+        }
       }
     }
     return arr;
@@ -159,6 +163,8 @@ var MineSweeper = (function () {
       a = b;
       b = tmp;
     }
+    a.unifiedWith.push(b);
+    b.unifiedWith.push(a);
 
     var inA = [];
     var inB = [];
@@ -185,12 +191,34 @@ var MineSweeper = (function () {
       this.createConstraint(0, inB);
       return true;
     }
+    if (b.mines - a.mines === inB.length) {
+      this.removeConstraint(a);
+      this.removeConstraint(b);
+      this.createConstraint(b.mines - a.mines, inB);
+      this.createConstraint(a.mines, inAB);
+      this.createConstraint(0, inA);
+      return true;
+    }
     if (inB.length === 0) {
       this.removeConstraint(a);
+      this.removeConstraint(b);
       this.createConstraint(aMore, inA);
       // Re-add b
-      this.removeConstraint(b);
       this.createConstraint(b.mines, b.cells);
+      return true;
+    }
+    if (b.mines === b.cells.length) {
+      this.removeConstraint(a);
+      this.removeConstraint(b);
+      this.createConstraint(a.mines - inAB.length, inA);
+      this.createConstraint(b.mines, b.cells);
+      return true;
+    }
+    if (a.mines === a.cells.length) {
+      this.removeConstraint(b);
+      this.removeConstraint(a);
+      this.createConstraint(b.mines - inAB.length, inB);
+      this.createConstraint(a.mines, a.cells);
       return true;
     }
     return false;
@@ -207,9 +235,8 @@ var MineSweeper = (function () {
 
   Solver.prototype.uncoverLater = function (cells) {
     for (var i = 0, l = cells.length; i < l; i++) {
-      if (this.field.mines[cells[i]]) { throw new Error("Mined field added to frontier list" + cells[i]); }
       if (this.field.covered[cells[i]] && this.frontier.indexOf(cells[i]) === -1) {
-        this.frontier.unshift(cells[i]);
+        this.frontier.push(cells[i]);
       }
     }
   };
@@ -266,7 +293,7 @@ var MineSweeper = (function () {
 
   Solver.prototype.step = function () {
     if (this.frontier.length > 0) {
-      var pos = this.fromIndex(this.frontier.shift());
+      var pos = this.fromIndex(this.frontier.pop());
       this.uncover(pos[0], pos[1]);
     } else {
       this.guess();
@@ -277,17 +304,16 @@ var MineSweeper = (function () {
     while (this.field.left > 0) { this.step(); }
   };
 
-  Solver.prototype.render = function () {
-    var self = this;
-    function isFlagged (x, y) {
-      var constraints = self.cells[self.field.getIndex(x, y)];
-      for (var i = 0, l = constraints.length; i < l; i++) {
-        var constraint = constraints[i];
-        if (constraint.cells.length === constraint.mines) { return true; }
-      }
-      return false;
+  Solver.prototype.isFlagged = function (x, y) {
+    var constraints = this.cells[this.field.getIndex(x, y)];
+    for (var i = 0, l = constraints.length; i < l; i++) {
+      var constraint = constraints[i];
+      if (constraint.cells.length === constraint.mines) { return true; }
     }
+    return false;
+  };
 
+  Solver.prototype.render = function () {
     var html = '';
     html += '<table>';
     for (var y  = 0; y < this.height; y++) {
@@ -301,7 +327,7 @@ var MineSweeper = (function () {
         if (!this.field.isCovered(x, y)) {
           var mines = this.field.uncover(x, y);
           html += '<span class="mines-' + mines + '">' + mines + '</span>';
-        } else if (isFlagged(x, y)) {
+        } else if (this.isFlagged(x, y)) {
           html += '<span class="flag">F</span>';
         }
         html += '</td>';
@@ -310,6 +336,24 @@ var MineSweeper = (function () {
     }
     html += '</table>';
     return html;
+  };
+
+  Solver.prototype.renderAscii = function () {
+    var str = '';
+    for (var y  = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+        if (!this.field.isCovered(x, y)) {
+          var mines = this.field.uncover(x, y);
+          str += mines;
+        } else if (this.isFlagged(x, y)) {
+          str += "F";
+        } else {
+          str += ' ';
+        }
+      }
+      str += '\n';
+    }
+    return str;
   };
 
   return {
